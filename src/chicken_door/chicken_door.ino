@@ -26,19 +26,19 @@ pinMode(openlimit, INPUT);
 Serial.begin(57600); // set up Serial library at 9600 bps
 motor.setSpeed(255); // set the speed to 200/255
 
-//Wire.begin();
-//RTC.begin();
-//if (! RTC.isrunning()) {
-//  Serial.println("RTC is NOT running!");
+Wire.begin();
+RTC.begin();
+if (! RTC.isrunning()) {
+  Serial.println("RTC is NOT running!");
   // following line sets the RTC to the date & time this sketch was compiled
   //RTC.adjust(DateTime(__DATE__, __TIME__));
-// }
+  }
 }
  
 void loop() {
   //DateTime now = RTC.now();
   setdoorstate();
-  checkdoorstatus();
+  //checkdoorstatus();
   buttonState = digitalRead(buttonPin);
   if (buttonState == HIGH) {
     Serial.print("Door state is ");
@@ -70,12 +70,12 @@ void closedoor() {
       counter++;
      // Serial.print(".");
     }
+    Serial.println("Door Closed"); 
     delay(1000);
     motor.run(RELEASE);
-    Serial.println("Door Closed"); 
     Serial.println(" ");
     doorstate = CLOSED;//set door state
-    /* DateTime now = RTC.now();
+    DateTime now = RTC.now();
     Serial.print(now.year(), DEC);
     Serial.print('/');
     Serial.print(now.month(), DEC);
@@ -87,7 +87,7 @@ void closedoor() {
     Serial.print(now.minute(), DEC);
     Serial.print(':');
     Serial.print(now.second(), DEC);
-    Serial.println(); */
+    Serial.println();
   }
 }
 
@@ -107,28 +107,28 @@ void opendoor() {
      Serial.println("Door Opened!"); 
      Serial.println(" ");  
      doorstate = OPEN;  //set door state
-     /* DateTime now = RTC.now();
-    Serial.print(now.year(), DEC);
-    Serial.print('/');
-    Serial.print(now.month(), DEC);
-    Serial.print('/');
-    Serial.print(now.day(), DEC);
-    Serial.print(' ');
-    Serial.print(now.hour(), DEC);
-    Serial.print(':');
-    Serial.print(now.minute(), DEC);
-    Serial.print(':');
-    Serial.print(now.second(), DEC);
-    Serial.println(); */
+     DateTime now = RTC.now();
+     Serial.print(now.year(), DEC);
+     Serial.print('/');
+     Serial.print(now.month(), DEC);
+     Serial.print('/');
+     Serial.print(now.day(), DEC);
+     Serial.print(' ');
+     Serial.print(now.hour(), DEC);
+     Serial.print(':');
+     Serial.print(now.minute(), DEC);
+     Serial.print(':');
+     Serial.print(now.second(), DEC);
+     Serial.println();
  }
 }
 
 void checkdoorstatus() {
-    setdoorstate();
-    if(doorstate == 0){
+    //setdoorstate();
+    if(doorstate == CLOSED){
     Serial.println("Door is Closed");
     Serial.println(" ");
-    } else if (doorstate == 1){
+    } else if (doorstate == OPEN){
     Serial.println("Door is Open");
     Serial.println(" ");
     } else {
