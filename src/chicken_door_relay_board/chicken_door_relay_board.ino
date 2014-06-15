@@ -7,7 +7,7 @@
 //RTC_DS1307 RTC;
 // constants won't change. They're used here to
 // set pin numbers:
-const int ledRing = 13;
+const int ledRing = 5;
 const int buttonPin = 6;     // the number of the pushbutton pin
 const int closelimit = 8;
 const int openlimit = 7;
@@ -65,7 +65,7 @@ void loop() {
   setdoorstate();
   //checkdoorstatus();
   buttonState = digitalRead(buttonPin);
-  if (buttonState == LOW) {
+  if (buttonState == HIGH) {
     Serial.print("Door state is ");
     switch (doorstate) {
       case 0:
@@ -141,7 +141,7 @@ void monitorLimit(int relay, int limit) {
   int counter = 0;
   delay(500);
   while ((digitalRead(openlimit) == HIGH) && digitalRead(closelimit) == HIGH && (counter < 10000)) {
-    if (digitalRead(buttonPin) == LOW) {
+    if (digitalRead(buttonPin) == HIGH) {
       delay(50);
       break;
     }
