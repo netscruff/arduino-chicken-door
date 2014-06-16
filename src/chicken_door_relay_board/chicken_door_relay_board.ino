@@ -1,42 +1,38 @@
 #include <Wire.h>
-//#include <DS1307RTC.h>
 #include "RTClib.h"
 #include <Time.h>
 #include <TimeAlarms.h>
-#define aref_voltage 3.3         // we tie 3.3V to ARef and measure it with a multimeter!
+#define aref_voltage 3.3      // we tie 3.3V to ARef and measure it with a multimeter!
 RTC_DS1307 RTC;
 // constants won't change. They're used here to
 // set pin numbers:
-const int ledRing = 5;
-const int buttonPin = 6;     // the number of the pushbutton pin
-const int closelimit = 8;
-const int openlimit = 7;
-const int CLOSED = 0;
-const int OPEN = 1;
-const int UNDETERMINED = 2;
-const int tempTrigger = 25;
-int p1 = 9;
-int p2 = 10;
-int p3 = 11;
-int p4 = 12;
+const int ledRing = 5;        // led ring in the pushbutton
+const int buttonPin = 6;      // number of the pushbutton pin
+const int closelimit = 8;     // limit switch for the bottom of the frame
+const int openlimit = 7;      // limit switch for the top of the frame
+const int CLOSED = 0;         // door is open
+const int OPEN = 1;           // door is closed
+const int UNDETERMINED = 2;   // door neither open or closed
+const int tempTrigger = 25;   // temperature trigger to turn on relay for fan
+const int tempPin = 0;        // analog temperature sensor
+// relay board with 4 relays
+const int p1 = 9;             // door motor control
+const int p2 = 10;            // door motor control
+const int p3 = 11;            // unused
+const int p4 = 12;            // fan control
+
+// variables will change:
+int tempReading;
 int holdTime = 2000;
 int previousDir = OPEN;
-int tempPin = 0;
-int tempReading;
-unsigned long time;
-long previoustime;
-long TimeToCheck = 300;  // Enter milliseconds for unit to check.  1,000 milliseconds = 1 seconds.  E.G. 300,000 millseconds = 300 seconds or 5 minutes
-// variables will change:
-int buttonState = 0;         // variable for reading the pushbutton status
+int buttonState = 0;          // variable for reading the pushbutton status
 int doorstate = 0;
 
-time_t syncProvider()     //this does the same thing as RTC_DS1307::get()
-    {
-      return RTC.now().unixtime();
-    }
+time_t syncProvider() {       //this does the same thing as RTC_DS1307::get()
+  return RTC.now().unixtime();
+}
  
 void setup() {
-  // initialize the pushbutton pin as an input:
   pinMode(ledRing, OUTPUT);
   pinMode(buttonPin, INPUT_PULLUP);
   pinMode(closelimit, INPUT_PULLUP);
@@ -46,8 +42,9 @@ void setup() {
   pinMode(11, OUTPUT);
   pinMode(12, OUTPUT);
   pinMode(13, OUTPUT);
-  pinMode(17, OUTPUT);
-  pinMode(16, OUTPUT);
+  pinMode(17, OUTPUT);         // Used to power the RTC
+  pinMode(16, OUTPUT);         // Ground for RTC
+  // turn all the relays off by setting HIGH
   digitalWrite(9, HIGH);
   digitalWrite(10, HIGH);
   digitalWrite(11, HIGH);
@@ -55,7 +52,7 @@ void setup() {
   digitalWrite(17, HIGH);
   digitalWrite(16, LOW);
   Serial.begin(57600); // set up Serial library at 9600 bps
-  analogReference(EXTERNAL);
+  analogReference(EXTERNAL);    // Used for the temperature probe
   #ifdef AVR
     Wire.begin();
   #else
@@ -64,12 +61,18 @@ void setup() {
   RTC.begin();
   if (! RTC.isrunning()) {
     Serial.println("RTC is NOT running!");
+    // following line sets the RTC to the date & time this sketch was compiled
+    RTC.adjust(DateTime(F(__DATE__), F(__TIME__)));
+    // This line sets the RTC with an explicit date & time, for example to set
+    // January 21, 2014 at 3am you would call:
+    // RTC.adjust(DateTime(2014, 1, 21, 3, 0, 0));
   }
-  setSyncProvider(syncProvider); 
-  Alarm.alarmRepeat(6, 30, 00, opendoor);
-  Alarm.alarmRepeat(22, 00, 00, closedoor);
-  Alarm.timerRepeat(15, checkTemp); 
-  Alarm.timerOnce(10, opendoor);
+  setSyncProvider(syncProvider);
+  RTC.now;
+  Alarm.alarmRepeat(6, 30, 00, opendoor);  //open door in the morning
+  Alarm.alarmRepeat(22, 00, 00, closedoor); // close door in the evening
+  Alarm.timerRepeat(15, checkTemp); // check temerature every 15 seconds
+  Alarm.timerOnce(10, opendoor);  // 10 seconds after poweron, open up the door
 }
  
 void loop() {
@@ -100,7 +103,7 @@ void loop() {
       }
     }
   }
-  delay(100);
+  Alarm.delay(100);
 }
 
 void checkTemp() {
