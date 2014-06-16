@@ -1,10 +1,10 @@
+#include <Wire.h>
+//#include <DS1307RTC.h>
+#include "RTClib.h"
 #include <Time.h>
 #include <TimeAlarms.h>
-#include <Wire.h>
-#include <DS1307RTC.h>
-//#include "RTClib.h"
-
-//RTC_DS1307 RTC;
+#define aref_voltage 3.3         // we tie 3.3V to ARef and measure it with a multimeter!
+RTC_DS1307 RTC;
 // constants won't change. They're used here to
 // set pin numbers:
 const int ledRing = 5;
@@ -14,17 +14,26 @@ const int openlimit = 7;
 const int CLOSED = 0;
 const int OPEN = 1;
 const int UNDETERMINED = 2;
+const int tempTrigger = 25;
 int p1 = 9;
 int p2 = 10;
 int p3 = 11;
 int p4 = 12;
 int holdTime = 2000;
 int previousDir = OPEN;
-
+int tempPin = 0;
+int tempReading;
+unsigned long time;
+long previoustime;
+long TimeToCheck = 300;  // Enter milliseconds for unit to check.  1,000 milliseconds = 1 seconds.  E.G. 300,000 millseconds = 300 seconds or 5 minutes
 // variables will change:
 int buttonState = 0;         // variable for reading the pushbutton status
 int doorstate = 0;
 
+time_t syncProvider()     //this does the same thing as RTC_DS1307::get()
+    {
+      return RTC.now().unixtime();
+    }
  
 void setup() {
   // initialize the pushbutton pin as an input:
@@ -44,24 +53,26 @@ void setup() {
   digitalWrite(11, HIGH);
   digitalWrite(12, HIGH);
   digitalWrite(17, HIGH);
+  digitalWrite(16, LOW);
   Serial.begin(57600); // set up Serial library at 9600 bps
-  Wire.begin();
-  /* RTC.begin();
+  analogReference(EXTERNAL);
+  #ifdef AVR
+    Wire.begin();
+  #else
+    Wire1.begin(); // Shield I2C pins connect to alt I2C bus on Arduino Due
+  #endif
+  RTC.begin();
   if (! RTC.isrunning()) {
     Serial.println("RTC is NOT running!");
   }
-  */
-  // following line sets the RTC to the date & time this sketch was compiled
-  //RTC.adjust(DateTime(__DATE__, __TIME__));
-  setSyncProvider(RTC.get);   // the function to get the time from the RTC
-  if(timeStatus()!= timeSet) 
-     Serial.println("Unable to sync with the RTC");
-  else
-     Serial.println("RTC has set the system time");
+  setSyncProvider(syncProvider); 
+  Alarm.alarmRepeat(6, 30, 00, opendoor);
+  Alarm.alarmRepeat(22, 00, 00, closedoor);
+  Alarm.timerRepeat(15, checkTemp); 
+  Alarm.timerOnce(10, opendoor);
 }
  
 void loop() {
-  //DateTime now = RTC.now();
   setdoorstate();
   //checkdoorstatus();
   buttonState = digitalRead(buttonPin);
@@ -90,7 +101,20 @@ void loop() {
     }
   }
   delay(100);
-}  
+}
+
+void checkTemp() {
+  tempReading = analogRead(tempPin);
+  float voltage = tempReading * aref_voltage;
+  voltage /= 1024.0;
+  float temperatureC = (voltage - 0.5) * 100;
+  Serial.print(temperatureC); Serial.println(" degrees C");
+  if (temperatureC >= tempTrigger) {
+    digitalWrite(p4, LOW);
+  } else {
+    digitalWrite(p4, HIGH);
+  }
+}
 
 void setdoorstate() {
   if (digitalRead(closelimit) == LOW) {doorstate = CLOSED; } // checks limit switch and set state accordingly
@@ -150,6 +174,7 @@ void monitorLimit(int relay, int limit) {
   }
   digitalWrite(relay, HIGH);
   digitalWrite(ledRing, LOW);
+  digitalWrite(13, LOW);
  }
 
 void checkdoorstatus() {
@@ -167,17 +192,18 @@ void checkdoorstatus() {
 }
 
 void printTime() {
-  setSyncProvider(RTC.get);
-  Serial.print(year(), DEC);
+  //setSyncProvider(RTC.get);
+  DateTime now = RTC.now();
+  Serial.print(now.year(), DEC);
   Serial.print('/');
-  Serial.print(month(), DEC);
+  Serial.print(now.month(), DEC);
   Serial.print('/');
-  Serial.print(day(), DEC);
+  Serial.print(now.day(), DEC);
   Serial.print(' ');
-  Serial.print(hour(), DEC);
+  Serial.print(now.hour(), DEC);
   Serial.print(':');
-  Serial.print(minute(), DEC);
+  Serial.print(now.minute(), DEC);
   Serial.print(':');
-  Serial.print(second(), DEC);
+  Serial.print(now.second(), DEC);
   Serial.println();
 }
