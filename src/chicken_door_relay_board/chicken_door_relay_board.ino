@@ -13,7 +13,7 @@ const int openlimit = 7;      // limit switch for the top of the frame
 const int CLOSED = 0;         // door is open
 const int OPEN = 1;           // door is closed
 const int UNDETERMINED = 2;   // door neither open or closed
-const int tempTrigger = 25;   // temperature trigger to turn on relay for fan
+const int tempTrigger = 4;   // temperature trigger to turn on relay for fan
 const int tempPin = 0;        // analog temperature sensor
 // relay board with 4 relays
 const int p1 = 9;             // door motor control
@@ -23,7 +23,6 @@ const int p4 = 12;            // fan control
 
 // variables will change:
 int tempReading;
-int holdTime = 2000;
 int previousDir = OPEN;
 int buttonState = 0;          // variable for reading the pushbutton status
 int doorstate = 0;
@@ -51,7 +50,7 @@ void setup() {
   digitalWrite(12, HIGH);
   digitalWrite(17, HIGH);
   digitalWrite(16, LOW);
-  Serial.begin(57600); // set up Serial library at 9600 bps
+  Serial.begin(57600); // set up Serial library at 57600 bps
   analogReference(EXTERNAL);    // Used for the temperature probe
   #ifdef AVR
     Wire.begin();
@@ -70,7 +69,7 @@ void setup() {
   setSyncProvider(syncProvider);
   RTC.now;
   Alarm.alarmRepeat(6, 30, 00, opendoor);  //open door in the morning
-  Alarm.alarmRepeat(22, 00, 00, closedoor); // close door in the evening
+  Alarm.alarmRepeat(18, 30, 00, closedoor); // close door in the evening
   Alarm.timerRepeat(15, checkTemp); // check temerature every 15 seconds
   Alarm.timerOnce(10, opendoor);  // 10 seconds after poweron, open up the door
 }
@@ -112,7 +111,7 @@ void checkTemp() {
   voltage /= 1024.0;
   float temperatureC = (voltage - 0.5) * 100;
   Serial.print(temperatureC); Serial.println(" degrees C");
-  if (temperatureC >= tempTrigger) {
+  if (temperatureC <= tempTrigger && doorstate == CLOSED) {
     digitalWrite(p4, LOW);
   } else {
     digitalWrite(p4, HIGH);
@@ -195,7 +194,6 @@ void checkdoorstatus() {
 }
 
 void printTime() {
-  //setSyncProvider(RTC.get);
   DateTime now = RTC.now();
   Serial.print(now.year(), DEC);
   Serial.print('/');
