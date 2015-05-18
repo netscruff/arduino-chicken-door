@@ -27,6 +27,8 @@ int holdTime = 2000;
 int previousDir = OPEN;
 int buttonState = 0;          // variable for reading the pushbutton status
 int doorstate = 0;
+float sunrise;
+float sunset;
 
 time_t syncProvider() {       //this does the same thing as RTC_DS1307::get()
   return RTC.now().unixtime();
@@ -67,11 +69,11 @@ void setup() {
   // This line sets the RTC with an explicit date & time, for example to set
   // January 21, 2014 at 3am you would call:
   // RTC.adjust(DateTime(2014, 1, 21, 3, 0, 0));
-  }
   setSyncProvider(syncProvider);
   RTC.now;
-  Alarm.alarmRepeat(6, 30, 00, opendoor);  //open door in the morning
-  Alarm.alarmRepeat(22, 00, 00, closedoor); // close door in the evening
+  printTime();
+  Alarm.alarmRepeat(5, 30, 00, opendoor);  //open door in the morning
+  Alarm.alarmRepeat(21, 30, 00, closedoor); // close door in the evening
   Alarm.timerRepeat(15, checkTemp); // check temerature every 15 seconds
   Alarm.timerOnce(10, opendoor);  // 10 seconds after poweron, open up the door
 }
@@ -80,6 +82,13 @@ void loop() {
   setdoorstate();
   //checkdoorstatus();
   buttonState = digitalRead(buttonPin);
+  if (buttonState == LOW) {
+    int limitHigh = digitalRead(openlimit);
+    int limitLow = digitalRead(closelimit);
+    if (limitHigh == LOW && limitLow == LOW)
+    buttonState = HIGH;
+    delay(2000);
+  }
   if (buttonState == HIGH) {
     Serial.print("Door state is ");
     switch (doorstate) {
