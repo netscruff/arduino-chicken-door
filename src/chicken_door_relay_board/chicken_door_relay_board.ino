@@ -2,7 +2,7 @@
 #include "RTClib.h"
 #include <Time.h>
 #include <TimeAlarms.h>
-#define aref_voltage 3.3      // we tie 3.3V to ARef and measure it with a multimeter!
+#define aref_voltage 3.5// we tie 3.3V to ARef and measure it with a multimeter!
 RTC_DS1307 RTC;
 // constants won't change. They're used here to
 // set pin numbers:
@@ -72,23 +72,21 @@ void setup() {
   setSyncProvider(syncProvider);
   RTC.now;
   printTime();
-  Alarm.alarmRepeat(5, 30, 00, opendoor);  //open door in the morning
-  Alarm.alarmRepeat(21, 30, 00, closedoor); // close door in the evening
-  Alarm.timerRepeat(15, checkTemp); // check temerature every 15 seconds
+  Alarm.alarmRepeat(6, 30, 00, opendoor);  //open door in the morning
+  Alarm.alarmRepeat(20, 00, 00, closedoor); // close door in the evening
+  Alarm.timerRepeat(60, checkTemp); // check temerature every 60 seconds
   Alarm.timerOnce(10, opendoor);  // 10 seconds after poweron, open up the door
 }
  
 void loop() {
-  setdoorstate();
-  //checkdoorstatus();
   buttonState = digitalRead(buttonPin);
   if (buttonState == LOW) {
     int limitHigh = digitalRead(openlimit);
     int limitLow = digitalRead(closelimit);
     if (limitHigh == LOW && limitLow == LOW)
     buttonState = HIGH;
-    delay(2000);
   }
+  delay(1000);
   if (buttonState == HIGH) {
     Serial.print("Door state is ");
     switch (doorstate) {
@@ -101,6 +99,7 @@ void loop() {
       default:
         Serial.println("undetermined");
     }
+    setdoorstate();
     if (doorstate == OPEN) {
       closedoor();
     } else if (doorstate == CLOSED) {
