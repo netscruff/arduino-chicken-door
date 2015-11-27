@@ -2,7 +2,7 @@
 #include "RTClib.h"
 #include <Time.h>
 #include <TimeAlarms.h>
-#define aref_voltage 3.5// we tie 3.3V to ARef and measure it with a multimeter!
+#define aref_voltage 3.5      // we tie 3.3V to ARef and measure it with a multimeter!
 RTC_DS1307 RTC;
 // constants won't change. They're used here to
 // set pin numbers:
@@ -13,7 +13,7 @@ const int openlimit = 7;      // limit switch for the top of the frame
 const int CLOSED = 0;         // door is open
 const int OPEN = 1;           // door is closed
 const int UNDETERMINED = 2;   // door neither open or closed
-const int tempTrigger = 25;   // temperature trigger to turn on relay for fan
+const int tempTrigger = 4;   // temperature trigger to turn on relay for fan
 const int tempPin = 0;        // analog temperature sensor
 // relay board with 4 relays
 const int p1 = 9;             // door motor control
@@ -53,7 +53,7 @@ void setup() {
   digitalWrite(12, HIGH);
   digitalWrite(17, HIGH);
   digitalWrite(16, LOW);
-  Serial.begin(57600); // set up Serial library at 9600 bps
+  Serial.begin(57600); // set up Serial library at 57600 bps
   analogReference(EXTERNAL);    // Used for the temperature probe
   #ifdef AVR
     Wire.begin();
@@ -73,7 +73,7 @@ void setup() {
   RTC.now;
   printTime();
   Alarm.alarmRepeat(6, 30, 00, opendoor);  //open door in the morning
-  Alarm.alarmRepeat(20, 00, 00, closedoor); // close door in the evening
+  Alarm.alarmRepeat(19, 00, 00, closedoor); // close door in the evening
   Alarm.timerRepeat(60, checkTemp); // check temerature every 60 seconds
   Alarm.timerOnce(10, opendoor);  // 10 seconds after poweron, open up the door
 }
@@ -121,7 +121,7 @@ void checkTemp() {
   voltage /= 1024.0;
   float temperatureC = (voltage - 0.5) * 100;
   Serial.print(temperatureC); Serial.println(" degrees C");
-  if (temperatureC >= tempTrigger) {
+  if (temperatureC <= tempTrigger && doorstate == CLOSED) {
     digitalWrite(p4, LOW);
   } else {
     digitalWrite(p4, HIGH);
